@@ -1,6 +1,8 @@
 package com.zfdang.zsmth_android;
 
 import android.webkit.CookieManager;
+import android.os.Build;
+import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +29,11 @@ public final class WebviewCookieHandler implements CookieJar {
 
         for (Cookie cookie : cookies) {
             webviewCookieManager.setCookie(urlString, cookie.toString());
+            if ("GUEST_READ_VERIFIED".equals(cookie.name()) && Build.VERSION.SDK_INT >= 21) {
+                webviewCookieManager.flush();
+                Log.i("GuestReadVerifier", "cookie persisted name=" + cookie.name() + " domain=" + cookie.domain()
+                    + " ttlSeconds=" + Math.max(0, (cookie.expiresAt() - System.currentTimeMillis()) / 1000));
+            }
         }
     }
 

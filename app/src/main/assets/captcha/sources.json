@@ -1,0 +1,8 @@
+{
+  "模型来源": "ddddocr 1.5.6 默认模型 common_old.onnx",
+  "模型SHA256": "b8f2ad9cbc1f2e3922a6cb9459e30824e7e2467f3fb4fd61420640e34ea0bf68",
+  "字符表项数": 8210,
+  "推理库来源": "https://repo.maven.apache.org/maven2/com/microsoft/onnxruntime/onnxruntime-android/1.23.2/onnxruntime-android-1.23.2.aar",
+  "推理库SHA256": "82048d1f462218adae4ba76477089ab0ba76093d84f733540066db1a8ba6b827",
+  "输入处理": "原图 Lanczos 缩放至64像素高、灰度、(像素/255−0.5)/0.5；CTC合并重复并忽略空白类别。"
+}

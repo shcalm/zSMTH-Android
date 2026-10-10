@@ -59,6 +59,7 @@ import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.Cache;
 import okhttp3.Interceptor;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -78,6 +79,7 @@ public class SMTHHelper {
   public static final String USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.101 Safari/537.36";
 
   public OkHttpClient mHttpClient;
+  private final GuestReadVerifier guestReadVerifier = new GuestReadVerifier();
 
   // WWW service of SMTH, but actually most of services are actually from nForum
   static private final String SMTH_WWW_URL = "https://www.newsmth.net/";
@@ -212,6 +214,17 @@ public class SMTHHelper {
         .client(mHttpClient)
         .build();
     wService = wRetrofit.create(SMTHWWWService.class);
+  }
+
+  public Observable<String> getPostListByPage(String board, String topic, int page, String author,
+      Runnable onVerification) {
+    HttpUrl.Builder url = HttpUrl.get(SMTH_WWW_URL).newBuilder().addPathSegment("nForum")
+        .addPathSegment("article").addPathSegment(board).addPathSegment(topic)
+        .addQueryParameter("ajax", null).addQueryParameter("p", Integer.toString(page));
+    if (author != null) {
+      url.addQueryParameter("au", author);
+    }
+    return guestReadVerifier.loadPage(mHttpClient, url.build(), onVerification);
   }
 
   // query active user status

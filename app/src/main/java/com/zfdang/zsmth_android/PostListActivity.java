@@ -99,6 +99,8 @@ public class PostListActivity extends SMTHBaseActivity
   private String mFilterUser = null;
 
   private Topic mTopic = null;
+  private Disposable mPostRequest;
+  private int mPostRequestId;
 
   static {
     ClassicsHeader.REFRESH_HEADER_PULLING = "下拉可以刷新";
@@ -132,6 +134,7 @@ public class PostListActivity extends SMTHBaseActivity
 
   @Override
   protected void onDestroy() {
+    cancelPostRequest();
     super.onDestroy();
     SwipeBackHelper.onDestroy(this);
   }
@@ -294,19 +297,32 @@ public class PostListActivity extends SMTHBaseActivity
   }
 
   public void loadPostListByPages() {
+    cancelPostRequest();
+    final int requestId = mPostRequestId;
+    if (pDialog != null) {
+      pDialog.setOnCancelListener(dialog -> {
+        cancelPostRequest();
+        clearLoadingHints();
+      });
+    }
     final SMTHHelper helper = SMTHHelper.getInstance();
-    helper.wService.getPostListByPage(mTopic.getTopicURL(), mTopic.getTopicID(), mCurrentPageNo, mFilterUser)
-        .flatMap(new Function<ResponseBody, Observable<Post>>() {
+    helper.getPostListByPage(mTopic.getTopicURL(), mTopic.getTopicID(), mCurrentPageNo, mFilterUser,
+        () -> runOnUiThread(() -> {
+          if (requestId == mPostRequestId && !isFinishing() && !isDestroyed()) {
+            showProgress("正在验证，请稍候…");
+            pDialog.setOnCancelListener(dialog -> {
+              cancelPostRequest();
+              clearLoadingHints();
+            });
+          }
+        }))
+        .flatMap(new Function<String, Observable<Post>>() {
           @Override
-          public Observable<Post> apply(@NonNull ResponseBody responseBody) throws Exception {
-            try {
-              String response = responseBody.string();
-              List<Post> posts = SMTHHelper.ParsePostListFromWWW(response, mTopic);
-              return Observable.fromIterable(posts);
-            } catch (Exception e) {
-              Log.e(TAG, Log.getStackTraceString(e));
-            }
-            return null;
+          public Observable<Post> apply(@NonNull String response) throws Exception {
+            List<Post> posts = SMTHHelper.ParsePostListFromWWW(response, mTopic);
+            Log.i(TAG, "post page parsed board=" + mTopic.getBoardEngName() + " topic=" + mTopic.getTopicID()
+                + " responseChars=" + response.length() + " postCount=" + posts.size());
+            return Observable.fromIterable(posts);
           }
         })
         .subscribeOn(Schedulers.io())
@@ -314,11 +330,14 @@ public class PostListActivity extends SMTHBaseActivity
         .subscribe(new Observer<Post>() {
           @Override
           public void onSubscribe(@NonNull Disposable disposable) {
-
+            mPostRequest = disposable;
           }
 
           @Override
           public void onNext(@NonNull Post post) {
+            if (requestId != mPostRequestId) {
+              return;
+            }
             // Log.d(TAG, post.toString());
             PostListContent.addItem(post);
             mRecyclerView.getAdapter().notifyItemInserted(PostListContent.POSTS.size() - 1);
@@ -326,12 +345,20 @@ public class PostListActivity extends SMTHBaseActivity
 
           @Override
           public void onError(@NonNull Throwable e) {
+            if (requestId != mPostRequestId) {
+              return;
+            }
             clearLoadingHints();
-            Toast.makeText(SMTHApplication.getAppContext(), "加载失败！\n" + e.toString(), Toast.LENGTH_LONG).show();
+            String message = e.getMessage();
+            Toast.makeText(SMTHApplication.getAppContext(), "加载失败！\n"
+                + (TextUtils.isEmpty(message) ? "请刷新重试" : message), Toast.LENGTH_LONG).show();
           }
 
           @Override
           public void onComplete() {
+            if (requestId != mPostRequestId) {
+              return;
+            }
             String title = String.format("[%d/%d] %s", mCurrentPageNo, mTopic.getTotalPageNo(), mTopic.getTitle());
             mTitle.setText(title);
             mPageNo.setText(String.format("%d", mCurrentPageNo));
@@ -339,6 +366,14 @@ public class PostListActivity extends SMTHBaseActivity
             clearLoadingHints();
           }
         });
+  }
+
+  private void cancelPostRequest() {
+    mPostRequestId++;
+    if (mPostRequest != null) {
+      mPostRequest.dispose();
+      mPostRequest = null;
+    }
   }
 
   @Override

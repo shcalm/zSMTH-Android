@@ -50,7 +50,7 @@ task clean(type: Delete) {
 ext {
     minSdkVersion = 17
     targetSdkVersion = 35
-    compileSdkVersion = 35
+    compileSdkVersion = 36
     FRESCO_VERSION = '1.14.2'
     RXJAVA2_VERSION = '2.2.21'
     RXANDROID2_VERSION = '2.1.1'

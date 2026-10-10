@@ -14,7 +14,7 @@ def appVersion = getDate()
 
 android {
     compileSdkVersion rootProject.compileSdkVersion
-    ndkVersion "21.4.7075529"
+    ndkVersion "27.1.12297006"
 
     // Explicitly enable BuildConfig generation to keep the feature when AGP removes the default
     buildFeatures {
@@ -30,6 +30,7 @@ android {
 
         // Enabling multidex support.
         multiDexEnabled true
+        testInstrumentationRunner "com.zfdang.zsmth_android.GuestReadE2E"
     }
     signingConfigs {
         release {
@@ -74,6 +75,13 @@ android {
         abortOnError false
     }
     namespace 'com.zfdang.zsmth_android'
+}
+
+// 真机 E2E 使用自定义 Instrumentation，API24+ 由系统加载 multidex。
+configurations.matching { it.name.contains('AndroidTest') }.configureEach {
+    exclude group: 'androidx.multidex', module: 'multidex-instrumentation'
+    resolutionStrategy.force 'androidx.lifecycle:lifecycle-runtime:2.4.0',
+        'androidx.lifecycle:lifecycle-common:2.4.0'
 }
 
 dependencies {
@@ -145,6 +153,7 @@ dependencies {
     implementation 'com.oguzdev:CircularFloatingActionMenu:1.0.2'
     // implementation 'com.wx.wheelview:wheelview:1.3.4'
     implementation files('libs/wheelview_1.3.3.jar')
+    implementation files('libs/onnxruntime-android-1.23.2.aar')
     implementation  'io.github.scwang90:refresh-layout-kernel:2.1.0'      //核心必须依赖
     implementation  'io.github.scwang90:refresh-header-classics:2.1.0'    //经典刷新头
     implementation  'io.github.scwang90:refresh-footer-classics:2.1.0'    //经典加载
